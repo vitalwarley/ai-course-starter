@@ -6,36 +6,22 @@ jobs:
   detect:
     runs-on: ubuntu-latest
     outputs:
-      tasks: ${{ steps.collect.outputs.tasks }}
-      tasks_len: ${{ steps.collect.outputs.tasks_len }}
+      tasks: ${{ steps.set.outputs.tasks }}
     steps:
-      # 1️⃣ checkout the student code **with full history** so the base SHA exists
       - uses: actions/checkout@v4
         with:
           path: student
-          ref:  ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 0          # <-- important
-          persist-credentials: false
-
-      # 2️⃣ collect changed task folders
-      - id: collect
-        working-directory: student
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: List tasks
+        id: set
         run: |
-          # List top-level dirs that match task-NN*
-          CHANGED=$(git diff --name-only \
-                     ${{ github.event.pull_request.base.sha }} \
-                     ${{ github.event.pull_request.head.sha }} |
-                     awk -F/ '/^task-[0-9]+/ {print $1}' | sort -u)
-
-          # Turn into JSON array
-          TASKS=$(echo "$CHANGED" | jq -R -s -c 'split("\n") - [""]')
+          chmod +x student/tools/list_changed_tasks.sh
+          TASKS=$(student/tools/list_changed_tasks.sh               "${{ github.event.pull_request.base.sha }}"               "${{ github.event.pull_request.head.sha }}"               | jq -R -s -c 'split("\n") - [""]')
           echo "tasks=$TASKS" >> $GITHUB_OUTPUT
-          echo "tasks_len=$(echo "$TASKS" | jq 'length')" >> $GITHUB_OUTPUT
-          echo "Detected task folders: $TASKS"
 
   grade:
     needs: detect
-    if: ${{ needs.detect.outputs.tasks_len != '0' }}
+    if: ${{ fromJSON(needs.detect.outputs.tasks) != '' }}
     strategy:
       matrix:
         task: ${{ fromJSON(needs.detect.outputs.tasks) }}
@@ -63,7 +49,13 @@ jobs:
           pip install spacy~=3.7
           python -m spacy download en_core_web_sm
       - run: |
-          PYTHONPATH=.:$PYTHONPATH pytest -q eval/${{ matrix.task }} --json-report --json-report-file=report.json --timeout=90
+          pytest -q eval/${{ matrix.task }} --json=report.json --timeout=90
+      - name: Read report
+        id: report
+        run: |
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          cat report.json >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
       - name: Comment back
         uses: marocchino/sticky-pull-request-comment@v2
         with:
@@ -71,5 +63,5 @@ jobs:
           message: |
             Autograde summary for **${{ matrix.task }}**:
             \`\`\`json
-            $(cat report.json)
+            ${{ steps.report.outputs.content }}
             \`\`\`
