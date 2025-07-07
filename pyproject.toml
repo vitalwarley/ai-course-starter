@@ -1,0 +1,24 @@
+[project]
+name = "ai-course-starter"
+version = "0.1.0"
+description = "AI Course Starter Tasks"
+requires-python = ">=3.9,<3.14"
+dependencies = [
+    "pip>=25.1.1",
+    "spacy==3.8.7",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["task-01-tech-extract", "task-02-ticket-classify", "tools"]
+
+[tool.uv]
+dev-dependencies = [] 
