@@ -63,11 +63,7 @@ jobs:
           pip install spacy~=3.7
           python -m spacy download en_core_web_sm
       - run: |
-<<<<<<< Updated upstream
-          pytest -q eval/${{ matrix.task }} --json-report --json-report-file=report.json --timeout=90
-=======
           PYTHONPATH=.:$PYTHONPATH pytest -q eval/${{ matrix.task }} --json-report --json-report-file=report.json --timeout=90
->>>>>>> Stashed changes
       - name: Comment back
         uses: marocchino/sticky-pull-request-comment@v2
         with:
