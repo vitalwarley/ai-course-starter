@@ -1,0 +1,61 @@
+name: grade
+on:
+  pull_request_target:
+    branches: [ "main" ]
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      tasks: ${{ steps.set.outputs.tasks }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: student
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: List tasks
+        id: set
+        run: |
+          chmod +x student/tools/list_changed_tasks.sh
+          TASKS=$(student/tools/list_changed_tasks.sh               "${{ github.event.pull_request.base.sha }}"               "${{ github.event.pull_request.head.sha }}"               | jq -R -s -c 'split("\n") - [""]')
+          echo "tasks=$TASKS" >> $GITHUB_OUTPUT
+
+  grade:
+    needs: detect
+    if: ${{ fromJSON(needs.detect.outputs.tasks) != '' }}
+    strategy:
+      matrix:
+        task: ${{ fromJSON(needs.detect.outputs.tasks) }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    permissions:
+      pull-requests: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: student
+          ref:  ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: ORGANIZATION/ai-course-eval
+          token: ${{ secrets.EVAL_REPO_PAT }}
+          path: eval
+      - run: |
+          pip install -r student/requirements.txt || true
+          pip install -r eval/requirements.txt
+          pip install spacy~=3.7
+          python -m spacy download en_core_web_sm
+      - run: |
+          pytest -q eval/${{ matrix.task }} --json=report.json --timeout=90
+      - name: Comment back
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: ${{ matrix.task }}-grade
+          message: |
+            Autograde summary for **${{ matrix.task }}**:
+            \`\`\`json
+            $(cat report.json)
+            \`\`\`
