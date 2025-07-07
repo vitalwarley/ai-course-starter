@@ -67,9 +67,11 @@ jobs:
       - name: Read report
         id: report
         run: |
-          echo "content<<EOF" >> $GITHUB_OUTPUT
-          cat report.json >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          {
+            echo "content<<EOF"
+            cat report.json
+            echo "EOF"
+          } >> $GITHUB_OUTPUT
       - name: Comment back
         uses: marocchino/sticky-pull-request-comment@v2
         with:
