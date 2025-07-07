@@ -54,7 +54,7 @@ jobs:
           persist-credentials: false
       - uses: actions/checkout@v4
         with:
-          repository: ORGANIZATION/ai-course-eval
+          repository: vitalwarley/ai-course-eval
           token: ${{ secrets.EVAL_REPO_PAT }}
           path: eval
       - run: |
