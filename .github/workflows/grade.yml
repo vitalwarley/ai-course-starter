@@ -64,6 +64,12 @@ jobs:
           python -m spacy download en_core_web_sm
       - run: |
           PYTHONPATH=.:$PYTHONPATH pytest -q eval/${{ matrix.task }} --json-report --json-report-file=report.json --timeout=90
+      - name: Read report
+        id: report
+        run: |
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          cat report.json >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
       - name: Comment back
         uses: marocchino/sticky-pull-request-comment@v2
         with:
@@ -71,5 +77,5 @@ jobs:
           message: |
             Autograde summary for **${{ matrix.task }}**:
             \`\`\`json
-            $(cat report.json)
+            ${{ steps.report.outputs.content }}
             \`\`\`
