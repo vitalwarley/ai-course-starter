@@ -6,22 +6,36 @@ jobs:
   detect:
     runs-on: ubuntu-latest
     outputs:
-      tasks: ${{ steps.set.outputs.tasks }}
+      tasks: ${{ steps.collect.outputs.tasks }}
+      tasks_len: ${{ steps.collect.outputs.tasks_len }}
     steps:
+      # 1️⃣ checkout the student code **with full history** so the base SHA exists
       - uses: actions/checkout@v4
         with:
           path: student
-          ref: ${{ github.event.pull_request.head.sha }}
-      - name: List tasks
-        id: set
+          ref:  ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0          # <-- important
+          persist-credentials: false
+
+      # 2️⃣ collect changed task folders
+      - id: collect
+        working-directory: student
         run: |
-          chmod +x student/tools/list_changed_tasks.sh
-          TASKS=$(student/tools/list_changed_tasks.sh               "${{ github.event.pull_request.base.sha }}"               "${{ github.event.pull_request.head.sha }}"               | jq -R -s -c 'split("\n") - [""]')
+          # List top-level dirs that match task-NN*
+          CHANGED=$(git diff --name-only \
+                     ${{ github.event.pull_request.base.sha }} \
+                     ${{ github.event.pull_request.head.sha }} |
+                     awk -F/ '/^task-[0-9]+/ {print $1}' | sort -u)
+
+          # Turn into JSON array
+          TASKS=$(echo "$CHANGED" | jq -R -s -c 'split("\n") - [""]')
           echo "tasks=$TASKS" >> $GITHUB_OUTPUT
+          echo "tasks_len=$(echo "$TASKS" | jq 'length')" >> $GITHUB_OUTPUT
+          echo "Detected task folders: $TASKS"
 
   grade:
     needs: detect
-    if: ${{ fromJSON(needs.detect.outputs.tasks) != '' }}
+    if: ${{ needs.detect.outputs.tasks_len != '0' }}
     strategy:
       matrix:
         task: ${{ fromJSON(needs.detect.outputs.tasks) }}
