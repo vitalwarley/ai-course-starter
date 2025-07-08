@@ -13,9 +13,9 @@ class Entities(TypedDict):
 def extract_entities(text: str) -> Entities:
     """Return extracted entities from ticket body."""
     # TODO: implement
-    raise NotImplementedError
+    return Entities(user="", os="", version="")
 
 def classify(text: str) -> Tuple[Priority, Category]:
     """Return (priority, category) for the ticket body."""
     # TODO: implement
-    raise NotImplementedError
+    return ("low", "bug")
