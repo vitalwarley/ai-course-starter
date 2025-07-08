@@ -64,20 +64,26 @@ jobs:
           python -m spacy download en_core_web_sm
       - run: |
           PYTHONPATH=.:$PYTHONPATH pytest -q eval/${{ matrix.task }} --json-report --json-report-file=report.json --timeout=90
-
-      - id: make-comment
+      - name: Build comment body
+        id: makebody
         run: |
+          BODY=$(jq -r . report.json | sed 's/^/    /')   # indent JSON 4 spaces
           {
             echo "## 🎯 Autograde Results: ${{ matrix.task }}"
             echo
             echo '```json'
-            jq . report.json           # <- pretty-print with 2-space indent
+            echo "$BODY"
             echo '```'
             echo
-            echo "_Run ID: ${{ github.run_id }}, Commit: ${{ github.sha }}_"
-          } > comment.txt
+            echo "_Run: ${{ github.run_id }}_"
+          } > body.txt
+          echo "body<<EOF" >> $GITHUB_OUTPUT
+          cat body.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-      - uses: marocchino/sticky-pull-request-comment@v2
+      - name: Post sticky comment
+        uses: marocchino/sticky-pull-request-comment@v2
         with:
-           header: "${{ matrix.task }}-grade-${{ github.run_id }}"   # ← unique per run
-           message: file://comment.txt
+          header: "${{ matrix.task }}-grade-${{ github.run_id }}"
+          message: "${{ steps.makebody.outputs.body }}"   # inline string, no file://
+
