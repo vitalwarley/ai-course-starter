@@ -1,0 +1,9 @@
+[project]
+name = "tech-extract"
+version = "0.1.0"
+description = "Technology Extraction from Job Postings"
+requires-python = ">=3.12"
+dependencies = [
+    "spacy>=3.7.0",
+    "openai>=1.93.2",
+] 
