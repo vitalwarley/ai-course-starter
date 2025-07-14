@@ -1,0 +1,10 @@
+[project]
+name = "hallucination-verifier"
+version = "0.1.0"
+description = "Hallucination Verifier using Prompt Engineering"
+requires-python = ">=3.12"
+dependencies = [
+    "openai>=1.93.2",
+    "gradio>=4.0.0",
+    "typing-extensions>=4.8.0",
+] 

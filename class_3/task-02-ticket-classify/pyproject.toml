@@ -1,0 +1,9 @@
+[project]
+name = "ticket-classify"
+version = "0.1.0"
+description = "Support Ticket Entity Extraction & Classification"
+requires-python = ">=3.12"
+dependencies = [
+    "spacy>=3.7.0",
+    "openai>=1.93.2",
+] 

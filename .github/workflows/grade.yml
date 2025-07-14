@@ -21,11 +21,11 @@ jobs:
       - id: collect
         working-directory: student
         run: |
-          # List top-level dirs that match task-NN*
+          # List class_X/task-NN-name dirs that have changes
           CHANGED=$(git diff --name-only \
                      ${{ github.event.pull_request.base.sha }} \
                      ${{ github.event.pull_request.head.sha }} |
-                     awk -F/ '/^task-[0-9]+/ {print $1}' | sort -u)
+                     awk -F/ '/^class_[0-9]+\/task-[0-9]+/ {print $1"/"$2}' | sort -u)
 
           # Turn into JSON array
           TASKS=$(echo "$CHANGED" | jq -R -s -c 'split("\n") - [""]')
@@ -58,10 +58,21 @@ jobs:
           token: ${{ secrets.EVAL_REPO_PAT }}
           path: eval
       - run: |
-          pip install -r student/requirements.txt || true
-          pip install -r eval/requirements.txt
-          pip install spacy~=3.7
-          python -m spacy download en_core_web_sm
+          # Run setup.sh in student's task directory
+          cd student/${{ matrix.task }}
+          if [ -f setup.sh ]; then
+            chmod +x setup.sh
+            ./setup.sh
+          fi
+          cd ../..
+          
+          # Run setup.sh in eval's task directory
+          cd eval/${{ matrix.task }}
+          if [ -f setup.sh ]; then
+            chmod +x setup.sh
+            ./setup.sh
+          fi
+          cd ../..
       - run: |
           PYTHONPATH=.:$PYTHONPATH pytest -q eval/${{ matrix.task }} --json-report --json-report-file=report.json --timeout=90
       - name: Build comment body
